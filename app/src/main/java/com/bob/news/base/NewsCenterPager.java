@@ -82,7 +82,7 @@ public class NewsCenterPager extends TabBasePage {
         pagers=new ArrayList<>();
         pagers.add(new NewsMenuDetailPager(mContext,bean.data.get(0)));
         pagers.add(new TopicMenuDetailPager(mContext));
-        pagers.add(new PhotosMenuDetailPager(mContext));
+        pagers.add(new PhotosMenuDetailPager(mContext,bean.data.get(2)));
         pagers.add(new InteractMenuDetailPager(mContext));
 
         //初始化左侧菜单数据
@@ -96,7 +96,7 @@ public class NewsCenterPager extends TabBasePage {
 
     //位置切换面
     public void switchCurrentPager(int position){
-        MenuDetailBasePager pager=pagers.get(position);
+        final MenuDetailBasePager pager=pagers.get(position);
         //添加到真布局中
         View view=pager.getRootView();
         flContent.removeAllViews();
@@ -105,5 +105,18 @@ public class NewsCenterPager extends TabBasePage {
         tvTitle.setText(leftMenuDataList.get(position).title);
        // 初始化数据
         pager.initData();
+
+        if (position==2){
+            mListOrGrid.setVisibility(View.VISIBLE);
+            mListOrGrid.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    PhotosMenuDetailPager photosMenuDetailPager = (PhotosMenuDetailPager)pager;
+                    photosMenuDetailPager.switchCurrentPager(mListOrGrid);
+                }
+            });
+        }else {
+            mListOrGrid.setVisibility(View.GONE);
+        }
     }
 }

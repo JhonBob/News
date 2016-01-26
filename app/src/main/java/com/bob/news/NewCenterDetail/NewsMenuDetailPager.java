@@ -62,7 +62,9 @@ public class NewsMenuDetailPager  extends MenuDetailBasePager implements
         tabPagerList=new ArrayList<>();
         for(int i=0;i<childRenList.size();i++){
             tabPagerList.add(new NewsMenuTabDetailPager(mContext,childRenList.get(i)));
+           // System.out.println(childRenList.size());
         }
+
 
 
         newsMenuAdapter=new NewsMenuAdapter();

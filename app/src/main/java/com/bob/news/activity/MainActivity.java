@@ -56,4 +56,16 @@ public class MainActivity extends FragmentActivity {
         ft.commit();
     }
 
+    public LeftMenuFragment getLeftMenuFragment(){
+        FragmentManager fragmentManager=getSupportFragmentManager();
+        LeftMenuFragment leftMenuFragment=(LeftMenuFragment)fragmentManager.findFragmentByTag(LEFT_TAG);
+        return leftMenuFragment;
+    }
+
+    public MainContentFragment getMainContentFragment(){
+        FragmentManager fragmentManager=getSupportFragmentManager();
+        MainContentFragment mainContentFragment=(MainContentFragment)fragmentManager.findFragmentByTag(MAIN_TAG);
+        return mainContentFragment;
+    }
+
 }

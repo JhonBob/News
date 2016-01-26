@@ -12,4 +12,6 @@ public class Constancts {
     public static final String serveiceurl="http://10.0.3.2:8080/zhbj";
     //新闻中心地址
     public static String newscenter_url=serveiceurl+"/categories.json";
+    //组图地址
+    public static String photo_url=serveiceurl+"/photos/photos_1.json";
 }

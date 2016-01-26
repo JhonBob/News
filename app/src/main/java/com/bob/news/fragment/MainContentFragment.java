@@ -1,9 +1,6 @@
 package com.bob.news.fragment;
 
 import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBar;
-import android.support.v7.widget.ViewUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +12,7 @@ import com.bob.news.activity.MainActivity;
 import com.bob.news.base.BaseFragment;
 import com.bob.news.base.GovaffirsPager;
 import com.bob.news.base.HomePager;
-import com.bob.news.base.NnewsCenterPager;
+import com.bob.news.base.NewsCenterPager;
 import com.bob.news.base.SettingPager;
 import com.bob.news.base.SmartServicePager;
 import com.bob.news.base.TabBasePage;
@@ -54,7 +51,7 @@ public class MainContentFragment extends BaseFragment implements RadioGroup.OnCh
     public void initData() {
         pageList=new ArrayList<TabBasePage>();
         pageList.add(new HomePager(mActivity));
-        pageList.add(new NnewsCenterPager(mActivity));
+        pageList.add(new NewsCenterPager(mActivity));
         pageList.add(new SmartServicePager(mActivity));
         pageList.add(new GovaffirsPager(mActivity));
         pageList.add(new SettingPager(mActivity));
@@ -131,5 +128,10 @@ public class MainContentFragment extends BaseFragment implements RadioGroup.OnCh
                 ((MainActivity)mActivity).mSlidingMenu.setTouchModeAbove(SlidingMenu.TOUCHMODE_FULLSCREEN);
             }
         }
+    }
+
+
+    public NewsCenterPager getNewsCenterPager(){
+        return (NewsCenterPager)pageList.get(1);
     }
 }

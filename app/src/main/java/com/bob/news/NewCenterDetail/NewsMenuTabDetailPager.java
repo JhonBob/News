@@ -1,23 +1,29 @@
 package com.bob.news.NewCenterDetail;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Message;
+import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bob.news.R;
+import com.bob.news.activity.NewsDetailActivity;
 import com.bob.news.base.MenuDetailBasePager;
 import com.bob.news.domain.NewsCenterBean;
 import com.bob.news.domain.TabDetailBean;
@@ -38,13 +44,16 @@ import com.bob.news.domain.NewsCenterBean.ChildRen;
 import com.bob.news.domain.TabDetailBean.TopNews;
 import com.bob.news.domain.TabDetailBean.News;
 
+import java.sql.DataTruncation;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Administrator on 2016/1/18.
  */
-public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewPager.OnPageChangeListener{
+public class NewsMenuTabDetailPager extends MenuDetailBasePager implements
+        ViewPager.OnPageChangeListener,RefreshListView.OnRefreshListener,
+        AdapterView.OnItemClickListener{
     @ViewInject(R.id.vp_news_menu_tab_detail_top_news)
     private HorizontalScrollViewPager mViewPager;
     @ViewInject(R.id.tv_news_menu_tab_detail_dec)
@@ -68,6 +77,11 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
     private List<News> newsList;
     private NewsAdapter newsAdapter;
 
+    private  HttpUtils httpUtils;
+
+    private String moreurl;
+    private final String READ_NEWS_ID_ARRAY_KEY="";
+
     public NewsMenuTabDetailPager(Context context) {
         super(context);
     }
@@ -90,7 +104,9 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
         //头布局,使得成为ListView的一部分，能够整体拖动
         View topview=View.inflate(mContext, R.layout.news_menu_tab_detail_topnews, null);
         ViewUtils.inject(this, topview);
-       // lvnews.addHeaderView(topview);
+        // lvnews.addHeaderView(topview);
+        //调用自定义
+        lvnews.addCustomHeaderView(topview);
         return view;
     }
 
@@ -107,7 +123,7 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
     }
 
     private void getDataFromNet(){
-        HttpUtils httpUtils=new HttpUtils();
+        httpUtils=new HttpUtils();
         httpUtils.send(HttpRequest.HttpMethod.GET, url, new RequestCallBack<String>() {
             @Override
             public void onSuccess(ResponseInfo<String> responseInfo) {
@@ -128,13 +144,16 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
 
     //处理数据
     private void processData(String result){
-        Gson gson=new Gson();
-        TabDetailBean bean=gson.fromJson(result, TabDetailBean.class);
+        TabDetailBean bean=parserJSON(result);
         //System.out.println(bean.data.news.get(0).title);
         topNewses=bean.data.topnews;
-        topNewAdapter=new TopNewAdapter();
-        mViewPager.setAdapter(topNewAdapter);
-        mViewPager.setOnPageChangeListener(this);
+        if (topNewAdapter==null) {
+            topNewAdapter = new TopNewAdapter();
+            mViewPager.setAdapter(topNewAdapter);
+            mViewPager.setOnPageChangeListener(this);
+        }else {
+            topNewAdapter.notifyDataSetChanged();
+        }
 
         llPoints.removeAllViews();
         //初始化图片描述和点
@@ -170,8 +189,14 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
 
         //初始化列表数据
         newsList=bean.data.news;
-        newsAdapter=new NewsAdapter();
-        lvnews.setAdapter(newsAdapter);
+        lvnews.setOnfreshListener(this);
+        lvnews.setOnItemClickListener(this);
+        if (newsAdapter==null) {
+            newsAdapter = new NewsAdapter();
+            lvnews.setAdapter(newsAdapter);
+        }else {
+            newsAdapter.notifyDataSetChanged();
+        }
 
     }
 
@@ -308,6 +333,14 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
             mHolder.tvTitle.setText(news.title);
             mHolder.tvDate.setText(news.pubdate);
             bitmapUtils.display(mHolder.ivImageView,news.listimage);
+
+            //判断当前新闻是否读过
+            String readIdArray=SPUtils.getString(mContext,READ_NEWS_ID_ARRAY_KEY,null);
+            if (!TextUtils.isEmpty(readIdArray) && readIdArray.contains(news.id)){
+                mHolder.tvTitle.setTextColor(Color.GRAY);
+            }else {
+                mHolder.tvTitle.setTextColor(Color.BLACK);
+            }
             return convertView;
         }
     }
@@ -317,5 +350,82 @@ public class NewsMenuTabDetailPager extends MenuDetailBasePager implements ViewP
         public TextView tvTitle;
         public TextView tvDate;
 
+    }
+
+
+    @Override
+    public void onPullDownRefresh() {
+        httpUtils.send(HttpRequest.HttpMethod.GET, url, new RequestCallBack<String>() {
+            @Override
+            public void onSuccess(ResponseInfo<String> responseInfo) {
+                lvnews.onRefreshFinish();
+
+                SPUtils.putString(mContext, url, responseInfo.result);
+                processData(responseInfo.result);
+
+                Toast.makeText(mContext,"下拉刷新完成",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(HttpException e, String s) {
+                lvnews.onRefreshFinish();
+            }
+        });
+    }
+
+
+    private TabDetailBean parserJSON(String json){
+        Gson gson=new Gson();
+        TabDetailBean bean=gson.fromJson(json, TabDetailBean.class);
+        moreurl=bean.data.more;
+        if(!TextUtils.isEmpty(moreurl)){
+            moreurl=Constancts.serveiceurl+moreurl;
+        }
+        return bean;
+    }
+
+    @Override
+    public void onLoadingMore() {
+
+        if (TextUtils.isEmpty(moreurl)){
+            lvnews.onRefreshFinish();
+            Toast.makeText(mContext,"没有更多数据了",Toast.LENGTH_SHORT).show();
+        }else {
+            httpUtils.send(HttpRequest.HttpMethod.GET, moreurl, new RequestCallBack<String>() {
+                @Override
+                public void onSuccess(ResponseInfo<String> responseInfo) {
+                    TabDetailBean bean=parserJSON(responseInfo.result);
+                    newsList.addAll(bean.data.news);
+                    newsAdapter.notifyDataSetChanged();
+                    Toast.makeText(mContext,"加载更多数据成功",Toast.LENGTH_SHORT).show();
+                    lvnews.onRefreshFinish();
+                }
+
+                @Override
+                public void onFailure(HttpException e, String s) {
+                    lvnews.onRefreshFinish();
+                    Toast.makeText(mContext,"加载更多数据失败",Toast.LENGTH_SHORT).show();
+                    lvnews.onRefreshFinish();
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        News news=newsList.get(position-1);
+        String readNewsIDArray=SPUtils.getString(mContext, READ_NEWS_ID_ARRAY_KEY, null);
+        String idArray=null;
+        if (TextUtils.isEmpty(readNewsIDArray)){
+            idArray=news.id;
+        }else {
+            idArray=readNewsIDArray+"#"+news.id;
+        }
+        SPUtils.putString(mContext, READ_NEWS_ID_ARRAY_KEY, idArray);
+        newsAdapter.notifyDataSetChanged();
+
+        Intent intent=new Intent(mContext, NewsDetailActivity.class);
+        intent.putExtra("url",news.url);
+        mContext.startActivity(intent);
     }
 }

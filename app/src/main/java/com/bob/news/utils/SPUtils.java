@@ -25,4 +25,19 @@ public class SPUtils {
         }
         mSharedPreferences.edit().putBoolean(key,value).apply();
     }
+
+    //存储数据
+    public static void putString(Context context,String key,String value){
+        if (mSharedPreferences==null){
+            mSharedPreferences=context.getSharedPreferences(FILENAME,Context.MODE_PRIVATE);
+        }
+        mSharedPreferences.edit().putString(key, value).apply();
+    }
+
+    public static String getString(Context context,String key,String defValue){
+        if (mSharedPreferences==null){
+            mSharedPreferences=context.getSharedPreferences(FILENAME,Context.MODE_PRIVATE);
+        }
+        return mSharedPreferences.getString(key, defValue);
+    }
 }

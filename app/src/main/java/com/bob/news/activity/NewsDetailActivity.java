@@ -2,6 +2,7 @@ package com.bob.news.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
@@ -14,6 +15,7 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 
 import com.bob.news.R;
+import com.bob.news.utils.ShareUtils;
 
 public class NewsDetailActivity extends Activity implements View.OnClickListener{
 
@@ -70,6 +72,8 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
                 finish();
                 break;
             case R.id.ib_title_bar_share:
+                ShareUtils shareUtils=new ShareUtils();
+                shareUtils.showShare(this,"分享",this.getFilesDir().getPath()+"qzone.png");
                 break;
             case R.id.ib_title_bar_textsize:
                 showTextSizeDialog();
